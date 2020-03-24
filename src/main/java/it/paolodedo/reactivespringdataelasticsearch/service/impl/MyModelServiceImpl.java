@@ -5,12 +5,15 @@ import it.paolodedo.reactivespringdataelasticsearch.service.MyModelService;
 import org.elasticsearch.action.admin.indices.create.CreateIndexRequest;
 import org.elasticsearch.action.admin.indices.get.GetIndexRequest;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.index.query.QueryBuilders;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.elasticsearch.client.reactive.ReactiveElasticsearchClient;
 import org.springframework.data.elasticsearch.core.ReactiveElasticsearchOperations;
-import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.data.elasticsearch.core.query.NativeSearchQueryBuilder;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.PostConstruct;
@@ -19,7 +22,6 @@ import static it.paolodedo.reactivespringdataelasticsearch.util.Constants.DEFAUL
 import static it.paolodedo.reactivespringdataelasticsearch.util.Constants.MYMODEL_ES_INDEX;
 
 @Service
-@EnableScheduling
 public class MyModelServiceImpl implements MyModelService {
 
     @PostConstruct
@@ -64,7 +66,7 @@ public class MyModelServiceImpl implements MyModelService {
 
     @Override
     public Mono<MyModel> findMyModelById(String id){
-        
+
         return reactiveElasticsearchOperations.findById(
             id,
             MyModel.class,
@@ -74,10 +76,37 @@ public class MyModelServiceImpl implements MyModelService {
     }
 
     @Override
+    public Flux<MyModel> findAllMyModels(String field, String value){
+
+        NativeSearchQueryBuilder query = new NativeSearchQueryBuilder();
+
+        if (!StringUtils.isEmpty(field) && !StringUtils.isEmpty(value)) {
+
+            query.withQuery(QueryBuilders.matchQuery(field, value));
+        }
+
+        return reactiveElasticsearchOperations.find(
+            query.build(),
+            MyModel.class,
+            MYMODEL_ES_INDEX
+        ).doOnError(throwable -> logger.error(throwable.getMessage(), throwable));
+    }
+
+    @Override
     public Mono<MyModel> saveMyModel(MyModel myModel){
 
         return reactiveElasticsearchOperations.save(
             myModel,
+            MYMODEL_ES_INDEX,
+            DEFAULT_ES_DOC_TYPE
+        ).doOnError(throwable -> logger.error(throwable.getMessage(), throwable));
+    }
+
+    @Override
+    public Mono<String> deleteMyModelById(String id){
+
+        return reactiveElasticsearchOperations.deleteById(
+            id,
             MYMODEL_ES_INDEX,
             DEFAULT_ES_DOC_TYPE
         ).doOnError(throwable -> logger.error(throwable.getMessage(), throwable));
