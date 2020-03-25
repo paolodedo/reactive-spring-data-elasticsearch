@@ -40,7 +40,7 @@ public class MyModelServiceImpl implements MyModelService {
                 else
                     return Mono.empty();
             })
-            .subscribe();
+            .block();
     }
 
     private Mono<Void> createIndex(){

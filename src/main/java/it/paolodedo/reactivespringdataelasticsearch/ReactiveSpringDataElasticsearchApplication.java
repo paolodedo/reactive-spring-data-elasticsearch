@@ -10,8 +10,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import javax.annotation.PostConstruct;
 import java.time.Duration;
 import java.util.Date;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Function;
 
 @SpringBootApplication
 public class ReactiveSpringDataElasticsearchApplication {
@@ -31,12 +29,6 @@ public class ReactiveSpringDataElasticsearchApplication {
 	@PostConstruct
 	public void test() {
 
-		// Delay to allow index to be created by MyModelServiceImpl's @PostConstruct annotated method
-		try {
-			TimeUnit.SECONDS.sleep(5);
-		} catch (InterruptedException e) {
-		}
-
 		// SAVE
 		MyModel myModel = new MyModel();
 		myModel.setData("test");
@@ -45,34 +37,30 @@ public class ReactiveSpringDataElasticsearchApplication {
 		myModelService.saveMyModel(myModel)
 			.doOnNext(savedObject -> logger.info("Object persisted: {}", savedObject))
 			.delayElement(Duration.ofSeconds(2))
-			.map(savedObject -> {
+			.flatMapMany(savedObject -> {
 				// FIND ALL FILTERED BY FIELD
 				return myModelService.findAllMyModels("data", "test");
 			})
-			.flatMapMany(Function.identity())
 			.delayElements(Duration.ofSeconds(2))
 			.doOnNext(objectRetrieved -> logger.info("Objects retrieved by find all: {}", objectRetrieved))
-			.map(objectRetrieved -> {
+			.flatMap(objectRetrieved -> {
 				// UPDATE
 				objectRetrieved.setData("test UPDATED");
 				objectRetrieved.setTimestamp(new Date().getTime());
 				return myModelService.saveMyModel(objectRetrieved);
 			})
-			.flatMap(Function.identity())
 			.delayElements(Duration.ofSeconds(2))
 			.doOnNext(updatedObject -> logger.info("Object updated: {}", updatedObject))
-			.map(updatedObject -> {
+			.flatMap(updatedObject -> {
 				// FIND BY ID
 				return myModelService.findMyModelById(updatedObject.getId());
 			})
-			.flatMap(Function.identity())
 			.delayElements(Duration.ofSeconds(2))
 			.doOnNext(foundObject -> logger.info("Object found: {}", foundObject))
-			.map(foundObject -> {
+			.flatMap(foundObject -> {
 				// DELETE
 				return myModelService.deleteMyModelById(foundObject.getId());
 			})
-			.flatMap(Function.identity())
 			.delayElements(Duration.ofSeconds(2))
 			.doOnNext(deletedObjectId -> logger.info("Object deleted's ID: {}", deletedObjectId))
 			.subscribe();
