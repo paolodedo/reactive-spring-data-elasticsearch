@@ -1,3 +1,3 @@
 # Article and Guide
 
-https://www.linkedin.com/post/edit/6647897085234434050/
+https://www.linkedin.com/pulse/reactive-spring-data-elasticsearch-boot-paolo-de-dominicis/
