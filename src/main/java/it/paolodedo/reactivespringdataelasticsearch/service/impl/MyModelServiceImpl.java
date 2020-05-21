@@ -10,6 +10,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.elasticsearch.client.reactive.ReactiveElasticsearchClient;
 import org.springframework.data.elasticsearch.core.ReactiveElasticsearchOperations;
+import org.springframework.data.elasticsearch.core.SearchHit;
+import org.springframework.data.elasticsearch.core.mapping.IndexCoordinates;
 import org.springframework.data.elasticsearch.core.query.NativeSearchQueryBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
@@ -17,6 +19,8 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import javax.annotation.PostConstruct;
+
+import java.util.Objects;
 
 import static it.paolodedo.reactivespringdataelasticsearch.util.Constants.DEFAULT_ES_DOC_TYPE;
 import static it.paolodedo.reactivespringdataelasticsearch.util.Constants.MYMODEL_ES_INDEX;
@@ -67,11 +71,10 @@ public class MyModelServiceImpl implements MyModelService {
     @Override
     public Mono<MyModel> findMyModelById(String id){
 
-        return reactiveElasticsearchOperations.findById(
+        return reactiveElasticsearchOperations.get(
             id,
             MyModel.class,
-            MYMODEL_ES_INDEX,
-            DEFAULT_ES_DOC_TYPE
+            IndexCoordinates.of(MYMODEL_ES_INDEX)
         ).doOnError(throwable -> logger.error(throwable.getMessage(), throwable));
     }
 
@@ -85,11 +88,14 @@ public class MyModelServiceImpl implements MyModelService {
             query.withQuery(QueryBuilders.matchQuery(field, value));
         }
 
-        return reactiveElasticsearchOperations.find(
+        return reactiveElasticsearchOperations.search(
             query.build(),
             MyModel.class,
-            MYMODEL_ES_INDEX
-        ).doOnError(throwable -> logger.error(throwable.getMessage(), throwable));
+            IndexCoordinates.of(MYMODEL_ES_INDEX)
+        )
+            .map(SearchHit::getContent)
+            .filter(Objects::nonNull)
+            .doOnError(throwable -> logger.error(throwable.getMessage(), throwable));
     }
 
     @Override
@@ -97,18 +103,16 @@ public class MyModelServiceImpl implements MyModelService {
 
         return reactiveElasticsearchOperations.save(
             myModel,
-            MYMODEL_ES_INDEX,
-            DEFAULT_ES_DOC_TYPE
+            IndexCoordinates.of(MYMODEL_ES_INDEX)
         ).doOnError(throwable -> logger.error(throwable.getMessage(), throwable));
     }
 
     @Override
     public Mono<String> deleteMyModelById(String id){
 
-        return reactiveElasticsearchOperations.deleteById(
+        return reactiveElasticsearchOperations.delete(
             id,
-            MYMODEL_ES_INDEX,
-            DEFAULT_ES_DOC_TYPE
+            IndexCoordinates.of(MYMODEL_ES_INDEX)
         ).doOnError(throwable -> logger.error(throwable.getMessage(), throwable));
     }
 
