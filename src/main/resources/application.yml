@@ -4,6 +4,3 @@ spring:
       client:
         reactive:
           endpoints: ${ELASTIC_ADDRESS:localhost}:${ELASTIC_PORT:9200}
-  elasticsearch:
-    rest:
-      uris: ${ELASTIC_PROTOCOL:http}://${ELASTIC_ADDRESS:localhost}:${ELASTIC_PORT:9200}
